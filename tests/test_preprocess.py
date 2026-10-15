@@ -2,18 +2,7 @@ import pytest
 from PIL import Image
 
 from src import config
-from src.preprocess import build_classify_dataset, letterbox, split_train_val
-
-
-def test_letterbox_makes_square_rgb_without_stretching():
-    image = Image.new("L", (100, 50), color=255)
-    result = letterbox(image, 32)
-
-    assert result.size == (32, 32)
-    assert result.mode == "RGB"
-    # A wide image is padded top and bottom, so the corners stay black.
-    assert result.getpixel((0, 0)) == (0, 0, 0)
-    assert result.getpixel((16, 16)) == (255, 255, 255)
+from src.preprocess import build_classify_dataset, split_train_val
 
 
 def test_split_train_val_is_deterministic_and_disjoint(tmp_path):
@@ -39,6 +28,7 @@ def test_build_classify_dataset_layout_and_counts(tmp_path, raw_dataset):
     assert output.suffix == ".jpg"
     with Image.open(output) as image:
         assert image.size == (32, 32)
+        assert image.mode == "L"
 
 
 def test_build_classify_dataset_refuses_to_overwrite(tmp_path, raw_dataset):

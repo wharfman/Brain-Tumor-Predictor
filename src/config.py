@@ -22,9 +22,14 @@ RUNS_DIR = PROJECT_ROOT / "runs"
 CLASS_NAMES = ("glioma", "meningioma", "notumor", "pituitary")
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 
-IMAGE_SIZE = 224
+IMAGE_SIZE = 640
 VAL_FRACTION = 0.15
 SEED = 42
+
+# Image pipeline settings (see src/transforms.py)
+CROP_THRESHOLD = 45  # pixels brighter than this count as head when cropping off the black border
+BLUR_KERNEL = (5, 5)
+MORPH_KERNEL = 3
 
 TASKS = ("classify", "segment")
 
@@ -40,6 +45,7 @@ BASE_WEIGHTS = {
 }
 
 TRAIN_DEFAULTS = {
-    "classify": {"epochs": 50, "imgsz": IMAGE_SIZE, "batch": 32, "patience": 10},
+    # erasing=0: random erasing blacks out patches of the scan and can hide the tumor itself.
+    "classify": {"epochs": 50, "imgsz": IMAGE_SIZE, "batch": 32, "patience": 10, "erasing": 0.0},
     "segment": {"epochs": 100, "imgsz": 640, "batch": 16, "patience": 20},
 }

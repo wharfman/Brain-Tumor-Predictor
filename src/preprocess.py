@@ -1,11 +1,12 @@
-"""Resize the raw MRI scans and arrange them in the folder layout YOLO classification expects.
+"""Run the image pipeline (src/transforms.py) on the raw MRI scans and arrange them in the
+folder layout YOLO classification expects.
 
     data/Train/<class>/*  ->  data/processed/classify/train/<class>/*.jpg
                           ->  data/processed/classify/val/<class>/*.jpg   (stratified hold-out)
     data/Test/<class>/*   ->  data/processed/classify/test/<class>/*.jpg
 
 Usage:
-    python -m src.preprocess [--size 224] [--val-fraction 0.15] [--overwrite]
+    python -m src.preprocess [--size 640] [--val-fraction 0.15] [--overwrite]
 """
 
 import argparse
@@ -13,22 +14,10 @@ import random
 import shutil
 from pathlib import Path
 
-from PIL import Image, ImageOps
+from PIL import Image
 
 from src import config
-
-
-def letterbox(image: Image.Image, size: int) -> Image.Image:
-    """Pad an image to a square with black borders, then resize it.
-
-    Padding instead of stretching keeps the anatomy (and tumor shape) undistorted, and
-    black matches the MRI background.
-    """
-    image = ImageOps.exif_transpose(image).convert("RGB")
-    side = max(image.size)
-    canvas = Image.new("RGB", (side, side))
-    canvas.paste(image, ((side - image.width) // 2, (side - image.height) // 2))
-    return canvas.resize((size, size), Image.Resampling.LANCZOS)
+from src.transforms import preprocess_image
 
 
 def list_images(directory: Path) -> list[Path]:
@@ -43,13 +32,13 @@ def split_train_val(files: list[Path], val_fraction: float, seed: int) -> tuple[
 
 
 def process_images(files: list[Path], dest_dir: Path, size: int) -> int:
-    """Letterbox each image into dest_dir as JPEG. Returns the number written."""
+    """Run the image pipeline on each file and save it into dest_dir as JPEG. Returns the number written."""
     dest_dir.mkdir(parents=True, exist_ok=True)
     written = 0
     for path in files:
         try:
             with Image.open(path) as image:
-                letterbox(image, size).save(dest_dir / f"{path.stem}.jpg", quality=95)
+                preprocess_image(image, size).save(dest_dir / f"{path.stem}.jpg", quality=95)
             written += 1
         except OSError as error:
             print(f"Skipping unreadable image {path}: {error}")

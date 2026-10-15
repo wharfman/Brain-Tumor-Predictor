@@ -12,7 +12,7 @@ from PIL import Image
 
 from src import config
 from src.model import load_best_model
-from src.preprocess import letterbox
+from src.transforms import preprocess_image
 
 
 def collect_images(source: Path) -> list[Path]:
@@ -24,9 +24,12 @@ def collect_images(source: Path) -> list[Path]:
 
 
 def load_for_classification(path: Path) -> Image.Image:
-    """Apply the same letterbox resize used in preprocessing so inputs match training data."""
+    """Apply the same pipeline used in preprocessing so inputs match the training data.
+
+    Grayscale is converted back to RGB because the YOLO model takes 3-channel input.
+    """
     with Image.open(path) as image:
-        return letterbox(image, config.IMAGE_SIZE)
+        return preprocess_image(image).convert("RGB")
 
 
 def predict(
