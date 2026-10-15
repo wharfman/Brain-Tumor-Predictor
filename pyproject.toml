@@ -1,0 +1,10 @@
+[project]
+name = "brain-tumor-predictor"
+version = "0.1.0"
+description = "YOLO-based brain tumor classification (and segmentation) from MRI scans"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = ["slow: trains a tiny model end to end (deselect with -m 'not slow')"]

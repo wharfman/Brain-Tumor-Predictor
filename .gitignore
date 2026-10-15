@@ -26,11 +26,14 @@ data/*
 models/*
 !models/.gitkeep
 
-# Training logs and outputs
+# Training logs and outputs (runs/ holds every Ultralytics run; best weights are copied to models/)
 logs/
 runs/
 wandb/
 *.log
+
+# Pretrained YOLO weights Ultralytics downloads into the working directory
+/yolo*.pt
 
 # Environment variables / secrets
 .env
