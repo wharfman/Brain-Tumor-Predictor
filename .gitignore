@@ -1,0 +1,45 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache / build files
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dataset (keep the folder, ignore its contents)
+data/*
+!data/.gitkeep
+
+# Trained models / checkpoints (keep the folder, ignore its contents)
+models/*
+!models/.gitkeep
+
+# Training logs and outputs
+logs/
+runs/
+wandb/
+*.log
+
+# Environment variables / secrets
+.env
+
+# IDE / editor settings
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
