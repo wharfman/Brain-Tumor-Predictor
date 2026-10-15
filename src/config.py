@@ -28,6 +28,11 @@ SEED = 42
 
 TASKS = ("classify", "segment")
 
+# AMD's Windows ROCm build can't compile MIOpen kernels at runtime (no C++ standard headers),
+# so batch norm crashes with miopenStatusUnknownError. With MIOpen off, PyTorch's own GPU
+# kernels are used instead. Set to False if a future ROCm release fixes this.
+DISABLE_MIOPEN = True
+
 # Pretrained Ultralytics checkpoints used as the starting point for fine-tuning.
 BASE_WEIGHTS = {
     "classify": "yolo11n-cls.pt",

@@ -1,8 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "brain-tumor-predictor"
 version = "0.1.0"
 description = "YOLO-based brain tumor classification (and segmentation) from MRI scans"
 requires-python = ">=3.10"
+
+# Installed editable (pip install -e .) so `from src import ...` works however a script is launched.
+[tool.setuptools]
+packages = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

@@ -1,10 +1,16 @@
 """Build and load YOLO models (PyTorch CNNs via Ultralytics) for each task."""
 
+import platform
 from pathlib import Path
 
+import torch
 from ultralytics import YOLO
 
 from src import config
+
+# On ROCm, torch.backends.cudnn controls MIOpen. See config.DISABLE_MIOPEN.
+if config.DISABLE_MIOPEN and torch.version.hip and platform.system() == "Windows":
+    torch.backends.cudnn.enabled = False
 
 
 def build_model(task: str, weights: str | Path | None = None) -> YOLO:
