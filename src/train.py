@@ -10,9 +10,10 @@ Usage:
 
 import argparse
 import shutil
+from contextlib import nullcontext
 from pathlib import Path
 
-from src import config, dataloader
+from src import config, dataloader, progress
 from src.model import best_weights_path, build_model
 
 
@@ -31,14 +32,16 @@ def train(
     data = dataloader.get_data(task)
     model = build_model(task, weights)
 
-    model.train(
-        data=str(data),
-        project=str(config.RUNS_DIR / task),
-        name=name or task,
-        device=device,
-        seed=config.SEED,
-        **{**config.TRAIN_DEFAULTS[task], **overrides},
-    )
+    # Classification gets readable per-epoch progress lines with accuracy (see src/progress.py).
+    with progress.attach(model) if task == "classify" else nullcontext():
+        model.train(
+            data=str(data),
+            project=str(config.RUNS_DIR / task),
+            name=name or task,
+            device=device,
+            seed=config.SEED,
+            **{**config.TRAIN_DEFAULTS[task], **overrides},
+        )
 
     best = Path(model.trainer.best)
     destination = best_weights_path(task)
