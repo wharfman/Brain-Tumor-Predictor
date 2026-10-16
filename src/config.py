@@ -38,6 +38,12 @@ TASKS = ("classify", "segment")
 # kernels are used instead. Set to False if a future ROCm release fixes this.
 DISABLE_MIOPEN = True
 
+# Windows ROCm caps pinned (page-locked) host memory at ~9.6 GB on this machine. Ultralytics always
+# pins its dataloader batches and PyTorch caches freed pinned blocks, so a run fills the cap after a
+# few epochs and dies with "CUDA error: out of memory" in the pin memory thread. With pinning off,
+# batches are copied to the GPU from ordinary memory, which is slightly slower.
+DISABLE_PIN_MEMORY = True
+
 # Pretrained Ultralytics checkpoints used as the starting point for fine-tuning.
 BASE_WEIGHTS = {
     "classify": "yolo11n-cls.pt",

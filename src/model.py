@@ -5,12 +5,25 @@ from pathlib import Path
 
 import torch
 from ultralytics import YOLO
+from ultralytics.data import build
 
 from src import config
 
+ROCM_WINDOWS = bool(torch.version.hip) and platform.system() == "Windows"
+
 # On ROCm, torch.backends.cudnn controls MIOpen. See config.DISABLE_MIOPEN.
-if config.DISABLE_MIOPEN and torch.version.hip and platform.system() == "Windows":
+if config.DISABLE_MIOPEN and ROCM_WINDOWS:
     torch.backends.cudnn.enabled = False
+
+# Ultralytics has no option for pinning, so override it on the loader class that every trainer and
+# validator builds. See config.DISABLE_PIN_MEMORY.
+if config.DISABLE_PIN_MEMORY and ROCM_WINDOWS:
+    _loader_init = build.InfiniteDataLoader.__init__
+
+    def _unpinned_loader_init(self, *args, **kwargs):
+        _loader_init(self, *args, **{**kwargs, "pin_memory": False})
+
+    build.InfiniteDataLoader.__init__ = _unpinned_loader_init
 
 
 def build_model(task: str, weights: str | Path | None = None) -> YOLO:
