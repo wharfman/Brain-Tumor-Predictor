@@ -31,6 +31,9 @@ CROP_THRESHOLD = 45  # pixels brighter than this count as head when cropping off
 BLUR_KERNEL = (5, 5)
 MORPH_KERNEL = 3
 
+# Synthetic copies made per training image by src/augment.py (val/test are never augmented)
+AUGMENT_COPIES = 1
+
 TASKS = ("classify", "segment")
 
 # AMD's Windows ROCm build can't compile MIOpen kernels at runtime (no C++ standard headers),

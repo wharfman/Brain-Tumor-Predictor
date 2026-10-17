@@ -5,8 +5,10 @@ folder layout YOLO classification expects.
                           ->  data/processed/classify/val/<class>/*.jpg   (stratified hold-out)
     data/Test/<class>/*   ->  data/processed/classify/test/<class>/*.jpg
 
+The train split then gets synthetic copies of each image (src/augment.py).
+
 Usage:
-    python -m src.preprocess [--size 640] [--val-fraction 0.15] [--overwrite]
+    python -m src.preprocess [--size 640] [--val-fraction 0.15] [--copies 1] [--overwrite]
 """
 
 import argparse
@@ -17,6 +19,7 @@ from pathlib import Path
 from PIL import Image
 
 from src import config
+from src.augment import augment_split
 from src.transforms import preprocess_image
 
 
@@ -52,9 +55,13 @@ def build_classify_dataset(
     size: int = config.IMAGE_SIZE,
     val_fraction: float = config.VAL_FRACTION,
     seed: int = config.SEED,
+    augment_copies: int = config.AUGMENT_COPIES,
     overwrite: bool = False,
 ) -> dict[str, dict[str, int]]:
-    """Build the processed dataset. Returns image counts as {split: {class: count}}."""
+    """Build the processed dataset. Returns image counts as {split: {class: count}}.
+
+    Train counts include the `augment_copies` synthetic copies made of each training image.
+    """
     if out_dir.exists():
         if not overwrite:
             raise FileExistsError(f"{out_dir} already exists. Pass overwrite=True (--overwrite) to rebuild it.")
@@ -68,6 +75,11 @@ def build_classify_dataset(
         for split, files in (("train", train_files), ("val", val_files), ("test", test_files)):
             counts[split][class_name] = process_images(files, out_dir / split / class_name, size)
             print(f"{split:>5} / {class_name:<10} {counts[split][class_name]:>5} images")
+
+    if augment_copies:
+        for class_name, n in augment_split(out_dir / "train", augment_copies, seed).items():
+            counts["train"][class_name] += n
+            print(f"train / {class_name:<10} {n:>5} synthetic copies")
     return counts
 
 
@@ -76,10 +88,19 @@ def main() -> None:
     parser.add_argument("--size", type=int, default=config.IMAGE_SIZE, help="output image side length in pixels")
     parser.add_argument("--val-fraction", type=float, default=config.VAL_FRACTION)
     parser.add_argument("--seed", type=int, default=config.SEED)
+    parser.add_argument(
+        "--copies", type=int, default=config.AUGMENT_COPIES, help="synthetic copies per training image (0 for none)"
+    )
     parser.add_argument("--overwrite", action="store_true", help="delete and rebuild an existing processed dataset")
     args = parser.parse_args()
 
-    build_classify_dataset(size=args.size, val_fraction=args.val_fraction, seed=args.seed, overwrite=args.overwrite)
+    build_classify_dataset(
+        size=args.size,
+        val_fraction=args.val_fraction,
+        seed=args.seed,
+        augment_copies=args.copies,
+        overwrite=args.overwrite,
+    )
     print(f"Processed dataset written to {config.CLASSIFY_DATA_DIR}")
 
 

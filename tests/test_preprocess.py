@@ -20,7 +20,8 @@ def test_build_classify_dataset_layout_and_counts(tmp_path, raw_dataset):
     counts = build_classify_dataset(*raw_dataset, out_dir=out_dir, size=32, val_fraction=0.2)
 
     for class_name in config.CLASS_NAMES:
-        assert counts["train"][class_name] == 8
+        assert counts["train"][class_name] == 8 * (1 + config.AUGMENT_COPIES)  # originals plus synthetic copies
+        assert len(list((out_dir / "train" / class_name).iterdir())) == counts["train"][class_name]
         assert counts["val"][class_name] == 2
         assert counts["test"][class_name] == 10
 
@@ -38,3 +39,8 @@ def test_build_classify_dataset_refuses_to_overwrite(tmp_path, raw_dataset):
     with pytest.raises(FileExistsError):
         build_classify_dataset(*raw_dataset, out_dir=out_dir, size=32)
     build_classify_dataset(*raw_dataset, out_dir=out_dir, size=32, overwrite=True)
+
+
+def test_build_classify_dataset_without_augmentation(tmp_path, raw_dataset):
+    counts = build_classify_dataset(*raw_dataset, out_dir=tmp_path / "processed", size=32, augment_copies=0)
+    assert all(n == 8 for n in counts["train"].values())
