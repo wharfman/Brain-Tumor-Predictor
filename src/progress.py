@@ -5,8 +5,8 @@ whole seconds left in that phase:
 
     Epoch 3/50
       Training    ━━━━━━──────   412/1214 batches   loss 0.3121   accuracy  88.4%   97s remaining
-      Validation  ━━━━━━━━━━━━    64/64 batches                   accuracy  91.2%    0s remaining
-      Epoch 3 done in 214s: training accuracy 89.0%, validation accuracy 91.2% (best 91.5%)
+      Validation  ━━━━━━━━━━━━    64/64 batches   loss 0.2408   accuracy  91.2%    0s remaining
+      Epoch 3 done in 214s: training accuracy 89.0%, validation accuracy 91.2% (best 91.5%), validation loss 0.2408
 
 Usage:
     with progress.attach(model):
@@ -98,7 +98,7 @@ class ProgressPrinter:
         self.saved_level = None
         self.epoch_started = None  # set while a training epoch is in progress
         self.val_correct = self.val_seen = 0
-        self.val_accuracy = None
+        self.val_accuracy = self.val_loss = None
         self.best_val_accuracy = 0.0
 
     # Ultralytics' progress bars draw only while its logger shows INFO, so raise it during each phase.
@@ -139,7 +139,7 @@ class ProgressPrinter:
         self._quiet()
         self.stream.write(f"\nEpoch {trainer.epoch + 1}/{trainer.epochs}\n")
         self.epoch_started = time.time()
-        self.val_accuracy = None
+        self.val_accuracy = self.val_loss = None
         self.criterion.reset()
         self._start_phase("Training", len(trainer.train_loader))
 
@@ -158,16 +158,23 @@ class ProgressPrinter:
         self.val_correct = self.val_seen = 0
         self._start_phase("Validation", len(validator.dataloader))
 
+    def _val_loss(self, validator) -> float | None:
+        # Ultralytics sums validation loss over batches, but only while validating during training.
+        if not validator.training or not self.done:
+            return None
+        return sum(float(v) for v in validator.loss.values()) / self.done
+
     def on_val_batch_end(self, validator) -> None:
         top1, targets = validator.pred[-1][:, 0], validator.targets[-1]
         self.val_correct += int((top1 == targets).sum())
         self.val_seen += len(targets)
         self.done += 1
-        self._draw(self.val_correct / self.val_seen)
+        self._draw(self.val_correct / self.val_seen, self._val_loss(validator))
 
     def on_val_end(self, validator) -> None:
         self.val_accuracy = self.val_correct / self.val_seen if self.val_seen else 0.0
-        self._draw(self.val_accuracy, final=True)
+        self.val_loss = self._val_loss(validator)
+        self._draw(self.val_accuracy, self.val_loss, final=True)
         if not validator.training:  # the final check of best.pt after training
             self.stream.write(f"Final validation (best.pt): accuracy {self.val_accuracy:.1%}\n")
         self._restore()
@@ -180,6 +187,8 @@ class ProgressPrinter:
         if self.val_accuracy is not None:
             self.best_val_accuracy = max(self.best_val_accuracy, self.val_accuracy)
             summary += f", validation accuracy {self.val_accuracy:.1%} (best {self.best_val_accuracy:.1%})"
+            if self.val_loss is not None:
+                summary += f", validation loss {self.val_loss:.4f}"
         self.stream.write(summary + "\n")
         self.stream.flush()
         self.epoch_started = None

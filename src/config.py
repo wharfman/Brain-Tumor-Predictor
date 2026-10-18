@@ -49,12 +49,27 @@ DISABLE_PIN_MEMORY = True
 
 # Pretrained Ultralytics checkpoints used as the starting point for fine-tuning.
 BASE_WEIGHTS = {
-    "classify": "yolo11n-cls.pt",
+    # Small (5.5M params) rather than nano (1.6M): more capacity, and it still fits a 16 GB GPU at 640 px.
+    "classify": "yolo11s-cls.pt",
     "segment": "yolo11n-seg.pt",
 }
 
 TRAIN_DEFAULTS = {
     # erasing=0: random erasing blacks out patches of the scan and can hide the tumor itself.
-    "classify": {"epochs": 50, "imgsz": IMAGE_SIZE, "batch": 32, "patience": 10, "erasing": 0.0},
+    # scale=0.2: the random crop keeps at least 80% of the image area (default 0.5 keeps 50%, which can
+    #   also cut the tumor out). Offline copies from src/augment.py already add rotation, zoom and crops.
+    # AdamW + cosine schedule: optimizer=auto picks MuSGD at lr 0.01, which made validation accuracy
+    #   swing by up to 14 points between epochs when fine-tuning the pretrained checkpoint.
+    "classify": {
+        "epochs": 50,
+        "imgsz": IMAGE_SIZE,
+        "batch": 32,
+        "patience": 15,
+        "erasing": 0.0,
+        "scale": 0.2,
+        "optimizer": "AdamW",
+        "lr0": 0.0005,
+        "cos_lr": True,
+    },
     "segment": {"epochs": 100, "imgsz": 640, "batch": 16, "patience": 20},
 }
