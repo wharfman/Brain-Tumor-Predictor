@@ -1,8 +1,10 @@
 """End-to-end smoke test: train for one epoch on a tiny dataset, then evaluate and predict."""
 
 import pytest
+from ultralytics import YOLO
 
 from src import config
+from src.cbam import has_cbam
 from src.evaluate import evaluate
 from src.predict import predict
 from src.train import train
@@ -22,6 +24,7 @@ def test_train_evaluate_predict(processed_dataset, raw_dataset):
     )
     assert weights == config.MODELS_DIR / "classify_best.pt"
     assert weights.is_file()
+    assert has_cbam(YOLO(str(weights)).model) == bool(config.CBAM_LAYERS)
 
     results = evaluate("classify", imgsz=32, device="cpu", plots=False)
     assert 0.0 <= results["metrics/accuracy_top1"] <= 1.0

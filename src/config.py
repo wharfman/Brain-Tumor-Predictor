@@ -54,6 +54,13 @@ BASE_WEIGHTS = {
     "segment": "yolo11n-seg.pt",
 }
 
+# CBAM attention (see src/cbam.py) after these classification backbone layers: the C3k2 stages at
+# 1/8, 1/16 and 1/32 resolution (80x80, 40x40, 20x20 for a 640 input). Layer 2 (1/4 resolution, mostly
+# edges) is skipped for cost, and layer 9 (C2PSA) already has self-attention. () turns CBAM off.
+CBAM_LAYERS = (4, 6, 8)
+CBAM_REDUCTION = 16  # channel-attention MLP hidden size is channels / CBAM_REDUCTION
+CBAM_KERNEL = 7  # spatial-attention convolution size
+
 TRAIN_DEFAULTS = {
     # erasing=0: random erasing blacks out patches of the scan and can hide the tumor itself.
     # scale=0.2: the random crop keeps at least 80% of the image area (default 0.5 keeps 50%, which can
