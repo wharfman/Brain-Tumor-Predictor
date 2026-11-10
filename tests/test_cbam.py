@@ -3,7 +3,8 @@ import torch
 from ultralytics import YOLO
 
 from src import config
-from src.cbam import CBAM, CBAMBlock, ChannelAttention, CBAMClassificationTrainer, SpatialAttention, add_cbam, has_cbam
+from src.cbam import CBAM, CBAMBlock, ChannelAttention, SpatialAttention, add_cbam, has_cbam
+from src.trainer import CustomClassificationTrainer
 
 
 def probabilities(model, x):
@@ -67,7 +68,8 @@ def test_add_cbam_disabled(plain_model):
 
 def _trainer_model(weights, monkeypatch):
     monkeypatch.setattr(config, "CBAM_LAYERS", (4, 6, 8))
-    trainer = CBAMClassificationTrainer.__new__(CBAMClassificationTrainer)  # skip dataset setup
+    monkeypatch.setattr(config, "SPPF_PLUS_LAYER", None)
+    trainer = CustomClassificationTrainer.__new__(CustomClassificationTrainer)  # skip dataset setup
     trainer.data = {"nc": len(config.CLASS_NAMES), "channels": 3}
     trainer.args = type("Args", (), {"pretrained": True, "dropout": 0.0})()
     trainer.resume = False

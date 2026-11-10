@@ -61,6 +61,12 @@ CBAM_LAYERS = (4, 6, 8)
 CBAM_REDUCTION = 16  # channel-attention MLP hidden size is channels / CBAM_REDUCTION
 CBAM_KERNEL = 7  # spatial-attention convolution size
 
+# SPPF+ multi-scale pooling (see src/sppf_plus.py), inserted in front of this classification backbone
+# layer: 9 is C2PSA, the same spot as SPPF in the detection model, on the 20x20 map for a 640 input.
+# None turns SPPF+ off. The max pools run in series, so kernels 5, 9, 13 see 5, 13 and 25 px windows.
+SPPF_PLUS_LAYER = 9
+SPPF_PLUS_KERNELS = (5, 9, 13)
+
 TRAIN_DEFAULTS = {
     # erasing=0: random erasing blacks out patches of the scan and can hide the tumor itself.
     # scale=0.2: the random crop keeps at least 80% of the image area (default 0.5 keeps 50%, which can

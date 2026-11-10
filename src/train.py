@@ -14,8 +14,8 @@ from contextlib import nullcontext
 from pathlib import Path
 
 from src import config, dataloader, progress
-from src.cbam import CBAMClassificationTrainer
 from src.model import best_weights_path, build_model
+from src.trainer import CustomClassificationTrainer
 
 
 def train(
@@ -34,8 +34,8 @@ def train(
     model = build_model(task, weights)
 
     # Classification gets readable per-epoch progress lines with accuracy (see src/progress.py), and
-    # CBAM attention in its backbone when config.CBAM_LAYERS is set (see src/cbam.py).
-    trainer = CBAMClassificationTrainer if task == "classify" and config.CBAM_LAYERS else None
+    # CBAM and SPPF+ in its backbone when enabled in config (see src/trainer.py).
+    trainer = CustomClassificationTrainer if task == "classify" else None
     with progress.attach(model) if task == "classify" else nullcontext():
         model.train(
             data=str(data),

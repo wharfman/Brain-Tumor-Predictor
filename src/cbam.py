@@ -12,13 +12,12 @@ Ultralytics ships its own `CBAM`, but its channel attention uses only average po
 full-width 1x1 conv, so this module implements the paper's version.
 
 Ultralytics' trainer rebuilds the network from its YAML before training, so CBAM is attached by
-`CBAMClassificationTrainer` after the pretrained weights are loaded (see config.CBAM_LAYERS).
+`CustomClassificationTrainer` (src/trainer.py) after the pretrained weights are loaded (see
+config.CBAM_LAYERS).
 """
 
 import torch
 from torch import nn
-from ultralytics.models.yolo.classify import ClassificationTrainer
-from ultralytics.utils import RANK
 
 from src import config
 
@@ -114,18 +113,3 @@ def add_cbam(model: nn.Module, layers=None, reduction: int | None = None, kernel
             model.model[i] = CBAMBlock(model.model[i], channels[i], reduction, kernel_size).to(first.device)
     return model
 
-
-class CBAMClassificationTrainer(ClassificationTrainer):
-    """Ultralytics' classification trainer, with CBAM added to the backbone (config.CBAM_LAYERS)."""
-
-    def get_model(self, cfg=None, weights=None, verbose=True):
-        if weights is not None and has_cbam(weights):
-            # Starting from a CBAM checkpoint: add CBAM first so its weights load too.
-            model = add_cbam(super().get_model(cfg, None, verbose=False))
-            model.load(weights)
-        else:
-            # Starting from a plain checkpoint: load it first, while layer names still match.
-            model = add_cbam(super().get_model(cfg, weights, verbose=False))
-        if verbose and RANK == -1:
-            model.info()
-        return model
