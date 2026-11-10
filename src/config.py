@@ -67,6 +67,12 @@ CBAM_KERNEL = 7  # spatial-attention convolution size
 SPPF_PLUS_LAYER = 9
 SPPF_PLUS_KERNELS = (5, 9, 13)
 
+# BiFPN head (see src/bifpn.py) over the outputs of these layers, replacing the Classify head: the
+# 80x80, 40x40 and 20x20 maps (P3, P4, P5) for a 640 input. Layer 9 is C2PSA (after SPPF+). () turns
+# BiFPN off. BIFPN_REPEATS is how many times the BiFPN layer is stacked (EfficientDet-D0 uses 3).
+BIFPN_LAYERS = (4, 6, 9)
+BIFPN_REPEATS = 2
+
 TRAIN_DEFAULTS = {
     # erasing=0: random erasing blacks out patches of the scan and can hide the tumor itself.
     # scale=0.2: the random crop keeps at least 80% of the image area (default 0.5 keeps 50%, which can
@@ -81,8 +87,8 @@ TRAIN_DEFAULTS = {
         "erasing": 0.0,
         "scale": 0.2,
         "optimizer": "AdamW",
-        "lr0": 0.0005,
+        "lr0": 0.001,
         "cos_lr": True,
     },
-    "segment": {"epochs": 100, "imgsz": 640, "batch": 16, "patience": 20},
+    "segment": {"epochs": 100, "imgsz": 640, "batch": 32, "patience": 20},
 }

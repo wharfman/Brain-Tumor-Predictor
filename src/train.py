@@ -34,7 +34,7 @@ def train(
     model = build_model(task, weights)
 
     # Classification gets readable per-epoch progress lines with accuracy (see src/progress.py), and
-    # CBAM and SPPF+ in its backbone when enabled in config (see src/trainer.py).
+    # CBAM, SPPF+ and the BiFPN head when enabled in config (see src/trainer.py).
     trainer = CustomClassificationTrainer if task == "classify" else None
     with progress.attach(model) if task == "classify" else nullcontext():
         model.train(

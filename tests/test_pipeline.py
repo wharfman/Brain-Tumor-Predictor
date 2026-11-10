@@ -4,6 +4,7 @@ import pytest
 from ultralytics import YOLO
 
 from src import config
+from src.bifpn import has_bifpn
 from src.cbam import has_cbam
 from src.sppf_plus import has_sppf_plus
 from src.evaluate import evaluate
@@ -28,6 +29,7 @@ def test_train_evaluate_predict(processed_dataset, raw_dataset):
     model = YOLO(str(weights)).model
     assert has_cbam(model) == bool(config.CBAM_LAYERS)
     assert has_sppf_plus(model) == (config.SPPF_PLUS_LAYER is not None)
+    assert has_bifpn(model) == bool(config.BIFPN_LAYERS)
 
     results = evaluate("classify", imgsz=32, device="cpu", plots=False)
     assert 0.0 <= results["metrics/accuracy_top1"] <= 1.0
