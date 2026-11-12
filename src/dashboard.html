@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MRI Tumor Classifier</title>
+<style>
+  :root {
+    --bg: #0f1215;
+    --surface: #161a1f;
+    --surface-2: #1c2228;
+    --border: #262d35;
+    --text: #e6eaee;
+    --muted: #8a949f;
+    --faint: #5c6670;
+    --accent: #7fa7c9;
+    --ok: #5db58f;
+    --ok-bg: rgba(93, 181, 143, 0.12);
+    --alert: #e38b5c;
+    --alert-bg: rgba(227, 139, 92, 0.12);
+    --track: #232a31;
+    --bar: #46515c;
+    --radius: 14px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1080px; margin: 0 auto; padding: 32px 24px 40px; }
+
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .mark {
+    width: 34px; height: 34px; border-radius: 9px;
+    display: grid; place-items: center;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--accent);
+  }
+  h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: 0.01em; }
+  .sub { color: var(--muted); font-size: 13px; }
+
+  .grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; min-width: 0;
+  }
+  .panel-title {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 16px;
+  }
+
+  /* Upload */
+  .drop {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    aspect-ratio: 1 / 1; width: 100%;
+    border: 1.5px dashed var(--border); border-radius: 12px;
+    background: #0b0e10; color: var(--muted); text-align: center; padding: 24px;
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); background: #0d1114; }
+  .drop:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .drop svg { color: var(--accent); }
+  .drop strong { color: var(--text); font-weight: 500; }
+  .drop .link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  .hint { font-size: 12.5px; color: var(--faint); }
+  .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+  .scan { display: none; }
+  .scan.show { display: block; }
+  .scan-frame {
+    aspect-ratio: 1 / 1; width: 100%; border-radius: 12px; overflow: hidden;
+    background: #000; display: grid; place-items: center;
+  }
+  .scan-frame img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+  .scan-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
+  .filename { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  button {
+    font: inherit; font-size: 13px; color: var(--text); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 14px; cursor: pointer; flex: none;
+  }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Result */
+  .state { display: none; }
+  .state.show { display: block; }
+  .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+  .empty p { margin: 6px 0 0; font-size: 13px; color: var(--faint); }
+
+  .loading { display: none; align-items: center; gap: 12px; color: var(--muted); padding: 40px 0; justify-content: center; }
+  .loading.show { display: flex; }
+  .spinner {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--track); border-top-color: var(--accent);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .verdict {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
+  }
+  .verdict .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .verdict.tumor { color: var(--alert); background: var(--alert-bg); }
+  .verdict.clear { color: var(--ok); background: var(--ok-bg); }
+
+  .label { font-size: 30px; font-weight: 600; margin: 16px 0 2px; letter-spacing: -0.01em; }
+  .conf { color: var(--muted); font-size: 14px; }
+  .conf b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .divider { height: 1px; background: var(--border); margin: 22px 0 18px; }
+  .bars { display: grid; gap: 14px; }
+  .bar-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 13.5px; }
+  .bar-row .name { color: var(--muted); }
+  .bar-row.top .name { color: var(--text); }
+  .bar-row .pct { font-variant-numeric: tabular-nums; color: var(--muted); }
+  .bar-row.top .pct { color: var(--text); }
+  .track { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+  .fill { height: 100%; width: 0; border-radius: 3px; background: var(--bar); transition: width .5s ease; }
+  .bar-row.top .fill { background: var(--accent); }
+
+  .error {
+    display: none; color: var(--alert); background: var(--alert-bg);
+    border-radius: 10px; padding: 12px 14px; font-size: 14px;
+  }
+  .error.show { display: block; }
+
+  footer { margin-top: 24px; color: var(--faint); font-size: 12.5px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="mark" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3.5v5M12 15.5v5M3.5 12h5M15.5 12h5"/>
+      </svg>
+    </div>
+    <div>
+      <h1>MRI Tumor Classifier</h1>
+      <div class="sub">Brain MRI analysis · runs locally on this machine</div>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="panel" aria-labelledby="scan-title">
+      <h2 class="panel-title" id="scan-title">Scan</h2>
+
+      <label class="drop" id="drop">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/>
+        </svg>
+        <span><strong>Drop an MRI scan here</strong> or <span class="link">browse</span></span>
+        <span class="hint">JPG, PNG or BMP · up to 25 MB</span>
+        <input type="file" id="file" accept="image/*">
+      </label>
+
+      <div class="scan" id="scan">
+        <div class="scan-frame"><img id="preview" alt="Uploaded MRI scan"></div>
+        <div class="scan-meta">
+          <span class="filename" id="filename"></span>
+          <button type="button" id="replace">Upload another</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="result-title" aria-live="polite">
+      <h2 class="panel-title" id="result-title">Result</h2>
+
+      <div class="state empty show" id="empty">
+        No scan analyzed yet.
+        <p>Upload a brain MRI scan to see the prediction.</p>
+      </div>
+
+      <div class="loading" id="loading"><div class="spinner"></div>Analyzing scan…</div>
+
+      <div class="error" id="error"></div>
+
+      <div class="state" id="result">
+        <span class="verdict" id="verdict"><span class="dot"></span><span id="verdict-text"></span></span>
+        <div class="label" id="label"></div>
+        <div class="conf">Model confidence <b id="confidence"></b></div>
+        <div class="divider"></div>
+        <div class="bars" id="bars"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Research tool, not a medical device. Predictions must not be used for diagnosis.</footer>
+</div>
+
+<script>
+  const NAMES = { glioma: "Glioma", meningioma: "Meningioma", pituitary: "Pituitary tumor", notumor: "No tumor" };
+  const $ = (id) => document.getElementById(id);
+  const input = $("file"), drop = $("drop");
+  let request = 0;  // ignore responses for scans that were replaced while loading
+
+  const pct = (p) => (p * 100).toFixed(1) + "%";
+
+  function show(state) {
+    for (const id of ["empty", "loading", "error", "result"]) $(id).classList.toggle("show", id === state);
+  }
+
+  function showError(message) {
+    $("error").textContent = message;
+    show("error");
+  }
+
+  function showResult(data) {
+    $("verdict").className = "verdict " + (data.tumor ? "tumor" : "clear");
+    $("verdict-text").textContent = data.tumor ? "Tumor detected" : "No tumor detected";
+    $("label").textContent = NAMES[data.label] || data.label;
+    $("confidence").textContent = pct(data.confidence);
+
+    const rows = Object.entries(data.probabilities).sort((a, b) => b[1] - a[1]);
+    $("bars").replaceChildren(...rows.map(([name, p]) => {
+      const row = document.createElement("div");
+      row.className = "bar-row" + (name === data.label ? " top" : "");
+      row.innerHTML = '<span class="name"></span><span class="pct"></span><div class="track"><div class="fill"></div></div>';
+      row.querySelector(".name").textContent = NAMES[name] || name;
+      row.querySelector(".pct").textContent = pct(p);
+      requestAnimationFrame(() => { row.querySelector(".fill").style.width = (p * 100) + "%"; });
+      return row;
+    }));
+    show("result");
+  }
+
+  async function analyze(file) {
+    if (!file) return;
+    const id = ++request;
+    $("preview").src = URL.createObjectURL(file);
+    $("filename").textContent = file.name;
+    drop.style.display = "none";
+    $("scan").classList.add("show");
+    show("loading");
+    try {
+      const response = await fetch("/predict", { method: "POST", body: file });
+      const data = await response.json();
+      if (id !== request) return;
+      if (!response.ok) throw new Error(data.error || "The scan could not be analyzed.");
+      showResult(data);
+    } catch (err) {
+      if (id !== request) return;
+      showError(err instanceof TypeError ? "Can't reach the dashboard server. Is it still running?" : err.message);
+    }
+  }
+
+  input.addEventListener("change", () => { analyze(input.files[0]); input.value = ""; });
+  $("replace").addEventListener("click", () => input.click());
+
+  for (const type of ["dragenter", "dragover"]) {
+    document.addEventListener(type, (e) => { e.preventDefault(); drop.classList.add("over"); });
+  }
+  for (const type of ["dragleave", "drop"]) {
+    document.addEventListener(type, (e) => { e.preventDefault(); if (type === "drop" || !e.relatedTarget) drop.classList.remove("over"); });
+  }
+  document.addEventListener("drop", (e) => analyze(e.dataTransfer.files[0]));
+</script>
+</body>
+</html>

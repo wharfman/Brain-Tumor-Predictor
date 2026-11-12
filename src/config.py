@@ -90,5 +90,5 @@ TRAIN_DEFAULTS = {
         "lr0": 0.001,
         "cos_lr": True,
     },
-    "segment": {"epochs": 100, "imgsz": 640, "batch": 32, "patience": 20},
+    "segment": {"epochs": 100, "imgsz": 640, "batch": 32, "patience": 15},
 }
